@@ -12,9 +12,7 @@
   "dependencies": {
     "bluebird": "^2.10.2",
     "bytes": "^2.1.0",
-    "http-proxy": "^1.11.2",
     "lru-cache": "^2.7.0",
-    "node-http-proxy": "^0.2.3",
     "object-assign": "^4.0.1",
     "object-sizeof": "^1.0.6",
     "request": "^2.64.0",

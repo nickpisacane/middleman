@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "author": "Nick Pisacane <pisacanen@gmail.com>",
   "description": "Http Reverse Proxy with caching",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nindaff/middleman"
+  },
+  "main": "index.js",
   "dependencies": {
     "bluebird": "^2.10.2",
     "bytes": "^2.1.0",

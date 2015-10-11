@@ -153,6 +153,35 @@ describe('CacheLib', function() {
       }).catch(done);
     });
 
+    it('should emit error when #store.del() rejects, during LRU automatic resize',
+    function(done) {
+      var cache = new Cache({
+        maxSize: '1KB'
+      });
+      var oneKb = function() {
+        return {
+          buf: new Buffer(1024),
+          size: function() {return this.buf.length}
+        };
+      };
+      var emitted = false;
+      cache.on('error', function(err) {
+        emitted = true;
+      });
+      cache.set('one', oneKb())
+        .then(function() {
+          cache.store.del = function() {
+            return Promise.reject(new Error('bad store'));
+          };
+          return cache.set('two', oneKb());
+        })
+        .then(function() {
+          emitted.should.equal(true);
+          done();
+        })
+        .catch(done);
+    });
+
     it('should clear() (NOT LRU)', function(done) {
       var cache = new Cache({
         lru: false
@@ -202,6 +231,40 @@ describe('CacheLib', function() {
       }).then(function() {
         done();
       }).catch(done);
+    });
+
+    it('should unprotect keys from LRU in the case of failed `clear()`',
+    function(done) {
+      var cache = new Cache();
+      Promise.all([
+        cache.set('one', 1),
+        cache.set('two', 2)
+      ])
+        .then(function() {
+          cache.store.del = function() {
+            return Promise.reject(new Error('bad store'));
+          };
+          return cache.clear()
+        })
+        .then(function() {
+          done(new Error('should have rejected'));
+        })
+        .catch(function(err) {
+          ['one', 'two'].forEach(function(key) {
+            cache._isProtected(key).should.equal(false);
+          });
+          done();
+        });
+    });
+
+    it('keys should be protected by default when not LRU', function(done) {
+      var cache = new Cache({lru: false});
+      cache.set('test', 42)
+        .then(function() {
+          cache._isProtected('test').should.equal(true);
+          done();
+        })
+        .catch(done);
     });
 
     it('should get(), set(), del() entries (NOT LRU)', function(done) {
@@ -254,7 +317,8 @@ describe('CacheLib', function() {
       });
     });
 
-    it('should emit an error when store resolves non-CacheEntry value', function(done) {
+    it('should emit "error" when store resolves non-CacheEntry value and ' +
+    'delete key entry (LRU)', function(done) {
       var badStore = {
         set: function() {return Promise.resolve()},
         get: function() {return Promise.resolve(42)},
@@ -269,6 +333,31 @@ describe('CacheLib', function() {
         cache.get('test').then(function() {
           done(new Error('should of rejected'));
         }).catch(function(err) {
+          cache._keyExistsBoth('test').should.equal(false);
+          return Promise.resolve();
+        })
+      });
+    });
+
+    it('should emit "error" when store resolves non-CacheEntry value and delete' +
+    ' key (NON-LRU)', function(done) {
+      var badStore = {
+        set: function() {return Promise.resolve()},
+        get: function() {return Promise.resolve(42)},
+        del: function() {return Promise.resolve()}
+      };
+      var cache = new Cache({
+        lru: false,
+        store: badStore
+      });
+      cache.set('test', 42).then(function() {
+        cache.on('error', function(err) {
+          done();
+        });
+        cache.get('test').then(function() {
+          done(new Error('should of rejected'));
+        }).catch(function(err) {
+          cache._keyExistsBoth('test').should.equal(false);
           return Promise.resolve();
         })
       });
@@ -304,6 +393,33 @@ describe('CacheLib', function() {
         .catch(done);
     });
 
-  // end Cache
-  });
+    it('should index keys when not LRU', function(done) {
+      var cache = new Cache();
+      cache.set('test', 42)
+        .then(function() {
+          cache._keyExistsBoth('test').should.equal(true);
+          return cache.del('test');
+        })
+        .then(function() {
+          cache._keyExistsBoth('test').should.equal(false);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should not manage keys in an array when LRU', function() {
+      var cache = new Cache();
+      should(cache._keys).equal(null);
+      cache._setKey('test');
+      cache._removeKey('test');
+    });
+
+    it('should not "protect" keys when NOT LRU', function() {
+      var cache = new Cache({lru: false});
+      should(cache._protected).equal(null);
+      cache._unProtect('test');
+    });
+
+    // end Cache
+    });
 });

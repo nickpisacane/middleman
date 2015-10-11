@@ -69,12 +69,18 @@ describe('CachedResponse', function() {
       headers: {},
       body: {}
     };
-    try {
-      CachedResponse.parse(bad);
-    } catch (e) {
-      (e instanceof Error).should.equal(true);
-      return true;
+    test(bad);
+    bad.body = 42;
+    test(bad);
+
+    function test(obj) {
+      try {
+        CachedResponse.parse(bad);
+      } catch (e) {
+        (e instanceof Error).should.equal(true);
+        return true;
+      }
+      throw new Error('Failed');
     }
-    throw new Error('Failed');
   });
 });

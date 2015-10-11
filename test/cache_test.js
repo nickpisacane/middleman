@@ -1,4 +1,5 @@
 var Cache = require('../lib/cache');
+var Entry = require('../lib/cache/entry');
 var KeyEntry = require('../lib/cache/entry').KeyEntry;
 var CacheEntry = require('../lib/cache/entry').CacheEntry;
 var MemoryStore = require('../lib/cache/store');
@@ -17,21 +18,35 @@ function makeArr(s, f) {
 }
 
 describe('CacheLib', function() {
+  describe('Entry', function() {
+    it('Entry constructors should not require `new` keyword', function() {
+      (Entry() instanceof Entry).should.equal(true);
+      (KeyEntry() instanceof KeyEntry).should.equal(true);
+      (CacheEntry() instanceof CacheEntry).should.equal(true);
+    });
+  });
+
   describe('CacheEntry', function() {
-    it('should return a values size', function() {
+    it('should return a values size in bytes (no .size() method or prop)',
+    function() {
       var value = 'test';
       var size = sizeof(value);
       var ce = new CacheEntry('test', value);
       ce.size().should.equal(size);
     });
 
-    it('should prefer to call a values `size()` method if available', function() {
+    it('.size() should return `value.size()` if its a number', function() {
       var value = {
         test: 'test',
         size: function(){return 42}
       };
       var ce = new CacheEntry('test', value);
       ce.size().should.equal(42);
+      value.size = function() {
+        return false;
+      };
+      var expected = sizeof(value);
+      ce.size().should.equal(expected);
     });
   });
 
@@ -68,9 +83,29 @@ describe('CacheLib', function() {
         done();
       }).catch(done);
     });
+
+    it('`.del()` should resolve true when key exists or not', function(done) {
+      store.del('doesntexist')
+        .then(function(resolved) {
+          resolved.should.equal(true);
+          return store.set('test', 42);
+        })
+        .then(function() {
+          return store.del('test');
+        })
+        .then(function(resolved) {
+          resolved.should.equal(true);
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe('Cache', function() {
+    it('constructor should not require `new` keyword', function() {
+      (Cache() instanceof Cache).should.equal(true);
+    });
+
     it('should resolve false for invalid entries', function(done) {
       var cache = new Cache({
         maxAge: 10
@@ -239,5 +274,36 @@ describe('CacheLib', function() {
       });
     });
 
+    it('should create KeyEntries for un-indexed entries (LRU)', function(done) {
+      var cache = new Cache();
+      var entry = new CacheEntry('test', 42);
+      cache.store.set('test', entry)
+        .then(function() {
+          return cache.get('test');
+        })
+        .then(function(cacheEntry) {
+          var keyEntry = cache._lruCache.get('test');
+          (keyEntry instanceof KeyEntry).should.equal(true);
+          keyEntry.key.should.equal(cacheEntry.key);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should create keys for un-indexed entires (NON-LRU)', function(done) {
+      var cache = new Cache({lru: false});
+      var entry = new CacheEntry('test', 42);
+      cache.store.set('test', entry)
+        .then(function() {
+          return cache.get('test');
+        })
+        .then(function(cacheEntry) {
+          cache._keys.indexOf(cacheEntry.key).should.not.equal(-1);
+          done();
+        })
+        .catch(done);
+    });
+
+  // end Cache
   });
 });

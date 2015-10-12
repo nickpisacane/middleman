@@ -15,14 +15,14 @@ describe('CachedResponse', function() {
   it('should parse json responses', function() {
     var status = 200;
     var headers = {'Content-Type': 'text/plain'};
-    var body = new Buffer('Hello, Mocha!');
+    var body = new Buffer('test');
     var cr = new CachedResponse(status, headers, body);
     // Stringify and parse
     var json = JSON.stringify(cr);
     var res = CachedResponse.parseJSON(json);
     res.status.should.equal(status);
     res.headers.should.eql(headers);
-    res.body.equals(body).should.equal(true);
+    res.body.toString().should.equal('test');
   });
 
   it('should parse CachedResponse-like objects (body = Buffer)', function() {

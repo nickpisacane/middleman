@@ -1,0 +1,27 @@
+{
+  "name": "middleman-proxy",
+  "version": "0.0.1",
+  "dependencies": {
+    "bluebird": "^2.10.2",
+    "bytes": "^2.1.0",
+    "http-proxy": "^1.11.2",
+    "lru-cache": "^2.7.0",
+    "node-http-proxy": "^0.2.3",
+    "object-assign": "^4.0.1",
+    "object-sizeof": "^1.0.6",
+    "request": "^2.64.0",
+    "url-join": "0.0.1"
+  },
+  "devDependencies": {
+    "express": "^4.13.3",
+    "istanbul": "^0.3.22",
+    "mocha": "^2.3.3",
+    "should": "^7.1.0",
+    "supertest": "^1.1.0"
+  },
+  "scripts": {
+    "test": "eslint lib && ./node_modules/.bin/_mocha -R spec test/*_test.js",
+    "test-ci": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- -R landing ./test/*_test.js",
+    "docs": "doxx --source lib --target docs --theme cayman"
+  }
+}

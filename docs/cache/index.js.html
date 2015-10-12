@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>middleman</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" type="text/css">
+    <link rel="stylesheet" href="../css/bootstrap.css">
+    <link rel="stylesheet" href="../css/cayman.css">
+    <link rel="stylesheet" href="../css/prism.css">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">middleman</h1>
+      <h2 class="project-tagline"></h2><a href="https://npmjs.com/package/middleman" target="_blank" class="btn">View on npm</a>
+    </section>
+    <section data-spy="scroll" data-target=".scrollspy" class="main-content">
+      <div class="row">
+        <div class="col-md-3 bs-docs-sidebar">
+          <ul id="sidebar" class="nav nav-stacked fixed">
+            <li><a href="../index.html">Main</a></li>
+            <li><a href="../cache/entry.js.html">cache/entry.js</a></li>
+            <li class="active"><a href="../cache/index.js.html">cache/index.js
+                <ul class="nav nav-stacked">
+                  <li><a href="#EventEmitter"><i class="alert alert-success"></i><span>EventEmitter</span></a>
+                  </li>
+                </ul></a></li>
+            <li><a href="../cache/store.js.html">cache/store.js</a></li>
+            <li><a href="../middleman.js.html">middleman.js</a></li>
+            <li><a href="../writeBuffer.js.html">writeBuffer.js</a></li>
+          </ul>
+        </div>
+        <div class="col-md-9">
+          <section id="EventEmitter">
+            <h1>EventEmitter</h1>
+            <h5 class="subheader"></h5>
+            <p>
+              <div class="label label-success radius ctx-type">declaration</div><span>&nbsp;</span><span>EventEmitter</span><span>&nbsp;</span>
+            </p>
+          </section>
+          <div class="description"></div>
+          <pre><code class="language-javascript">var EventEmitter = require('events').EventEmitter;
+var inherits = require('util').inherits;
+var bytes = require('bytes');
+var LRU = require('lru-cache');
+var MemoryStore = require('./store');
+var KeyEntry = require('./entry').KeyEntry;
+var CacheEntry = require('./entry').CacheEntry;
+
+function Cache(options) {
+  if (!(this instanceof Cache)) return new Cache(options);
+  EventEmitter.call(this);
+  options = options || {};
+  this.store = options.store || new MemoryStore();
+  this._maxAge = options.maxAge || Infinity;
+  this._keys = null;
+  this._protected = null;
+  this._lru = typeof options.lru !== 'undefined'
+    ? options.lru
+    : true;
+
+  this._maxSize = options.maxSize || Infinity;
+  if (typeof this._maxSize === 'string') {
+    this._maxSize = bytes(this._maxSize);
+  }
+  this.init();
+}
+inherits(Cache, EventEmitter);
+
+Cache.prototype.init = function() {
+  var self = this;
+  if (!self._lru) {
+    self._keys = [];
+    return;
+  }
+
+  self._protected = [];
+  self._lruCache = LRU({
+    max: self._maxSize,
+    maxAge: Infinity,
+    length: function(keyEntry) {
+      return keyEntry.size;
+    },
+    dispose: function(key) {
+      if (!self._isProtected(key)) {
+        self._del(key);
+      }
+    }
+  });
+};
+
+Cache.prototype.get = function(key) {
+  var self = this;
+  return self.store.get(key)
+    .then(function(cacheEntry) {
+      // the store doesn't have an entry
+      if (!cacheEntry) {
+        if (!self._lru) {
+          self._removeKey(key);
+        }
+        // Return null for caches that don't exist
+        return null;
+      }
+      if (!(cacheEntry instanceof CacheEntry)) {
+        var err = new Error('expected store to resolve CacheEntry instance');
+        self.emit('error', err);
+        if (self._lru) {
+          self._lruCache.del(key);
+        } else {
+          self._removeKey(key);
+        }
+        return Promise.reject(err);
+      }
+      if (!self._isValid(cacheEntry)) {
+        // return false for invalid entries
+        return false;
+      }
+      if (!self._lru) {
+        return cacheEntry;
+      }
+      var keyEntry = self._lruCache.get(key);
+      if (!keyEntry) {
+        keyEntry = new KeyEntry(key, cacheEntry.size());
+        // Possibly deprecate
+        keyEntry.setCreated(cacheEntry.created);
+        self._lruCache.set(key, keyEntry);
+      }
+      return cacheEntry;
+    });
+};
+
+Cache.prototype.set = function(key, value) {
+  var self = this;
+  var cacheEntry = new CacheEntry(key, value);
+
+  return self.store.set(key, cacheEntry)
+    .then(function() {
+      if (self._lru) {
+        var keyEntry = new KeyEntry(key, cacheEntry.size());
+        keyEntry.setCreated(cacheEntry.created);
+        self._lruCache.set(key, keyEntry);
+      } else {
+        self._setKey(key);
+      }
+      return cacheEntry;
+    });
+};
+
+Cache.prototype.del = function(key) {
+  var self = this;
+  self._protect(key);
+  return self.store.del(key)
+    .then(function() {
+      if (self._lru) {
+        self._lruCache.del(key);
+        self._unProtect(key);
+      } else {
+        self._removeKey(key);
+      }
+    });
+};
+
+Cache.prototype.clear = function() {
+  var self = this;
+  var keys;
+  if (self._lru) {
+    keys = self._lruCache.keys();
+    keys.forEach(function(key) {
+      self._protect(key);
+    });
+  } else {
+    keys =  self._keys;
+  }
+
+  var promises = keys.map(function(key) {
+    return self.store.del(key)
+      .then(function() {
+        if (!self._lru) {
+          self._removeKey(key);
+        } else {
+          self._lruCache.del(key);
+          self._unProtect(key);
+        }
+      }).catch(function() {
+        self._unProtect(key);
+        return Promise.reject();
+      });
+  });
+
+  return Promise.all(promises);
+};
+
+Cache.prototype._setKey = function(key) {
+  var self = this;
+  if (!self._lru) {
+    self._keys.push(key);
+  }
+};
+
+Cache.prototype._removeKey = function(key) {
+  var self = this;
+  if (!self._lru) {
+    removeElement(self._keys, key);
+  }
+};
+
+Cache.prototype._del = function(key) {
+  var self = this;
+  self.store.del(key)
+    .then(function() {
+      self.emit('delete', key);
+    })
+    .catch(function(err) {
+      self.emit('error', err);
+    });
+};
+
+Cache.prototype._protect = function(key) {
+  var self = this;
+  if (self._lru) {
+    self._protected.push(key);
+  }
+};
+
+Cache.prototype._unProtect = function(key) {
+  var self = this;
+  if (self._lru) {
+    removeElement(self._protected, key);
+  }
+};
+
+Cache.prototype._isProtected = function(key) {
+  var self = this;
+  if (!self._lru) {
+    return true;
+  }
+  return self._protected.indexOf(key) !== -1;
+};
+
+Cache.prototype._isValid = function(cacheEntry) {
+  var self = this;
+  return (Date.now() - cacheEntry.created) &lt; self._maxAge;
+};
+
+module.exports = Cache;
+module.exports.KeyEntry = KeyEntry;
+module.exports.CacheEntry = CacheEntry;
+
+function removeElement(arr, val) {
+  var index = arr.indexOf(val);
+  if (~index) {
+    arr.splice(index, 1);
+  }
+}</code></pre>
+          <div class="footer site-footer">
+            <div class="span site-footer-owner"><a href="https://github.com/iwatakeshi/doxx-theme-cayman">Cayman</a> is maintained by <a href="https://github.com/iwatakeshi">iwatakeshi</a>.</div>
+            <div class="span site-footer-credits">This page was generated by <a href="https://github.com/FGRibreau/doxx">Doxx</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <script src="../js/jquery.min.js"></script>
+    <script src="../js/bootstrap.min.js"></script>
+    <script src="../js/affix.js"></script>
+    <script src="../js/dropdown.js"></script>
+    <script src="../js/scrollspy.js"></script>
+    <script src="../js/prism.js"></script>
+    <script src="../js/prism-bash.js"></script>
+    <script>
+      $(document).ready(function(){
+        $('body').scrollspy({
+          target: ".bs-docs-sidebar",
+          offset: 40
+        }) 
+      });
+    </script>
+  </body>
+</html>

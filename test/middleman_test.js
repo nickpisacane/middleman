@@ -73,12 +73,12 @@ Suite.prototype.close = function() {
 };
 
 // Helper, used a lot through the tests, sets `X-Cached` header to `true`
-function xCached(res) {
+function xCached(req, res) {
   res.setHeader('X-Cached', 'true');
 }
 
 // sets `X-Proxied` header to `true`
-function xProxied(res) {
+function xProxied(req, res) {
   res.setHeader('X-Proxied', 'true');
 }
 
@@ -96,13 +96,41 @@ describe('Middleman', function() {
     SUITE.close();
   });
 
-  it('should emit "proxy request", when request '+
-    'is being proxied and passing http.IncomingMessage', function(done) {
+  it('should emit "request" for all requests', function(done) {
+    var instance = SUITE.createInstance();
+    var agent = SUITE.agent;
+    var count = 0;
+    instance
+      .on('request', function(req, res) {
+        req.should.be.instanceof(http.IncomingMessage);
+        res.should.be.instanceof(http.ServerResponse);
+        count++;
+      })
+      .on('proxy request', xProxied)
+      .on('cache request', xCached);
+
+    agent.get('/fast')
+      .expect('X-Proxied', 'true')
+      .end(function(err, res) {
+        if (err) return done(err);
+        agent.get('/fast')
+          .expect('X-Cached', 'true')
+          .end(function(err, res) {
+            if (err) return done(err);
+            count.should.equal(2);
+            done();
+          });
+      });
+  });
+
+  it('should emit "proxy request", when request is being proxies',
+  function(done) {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
     var emitted = false;
-    instance.on('proxy request', function(req) {
+    instance.on('proxy request', function(req, res) {
       (req instanceof http.IncomingMessage).should.equal(true);
+      (res instanceof http.ServerResponse).should.equal(true);
       emitted = true;
     });
     agent.get('/fast')
@@ -113,13 +141,14 @@ describe('Middleman', function() {
       });
   });
 
+/*
   it('should emit "proxy response", when response is being proxied'+
      ' and pass http.ServerResponse instance',
   function(done) {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
     var emitted = false;
-    instance.on('proxy response', function(res) {
+    instance.on('proxy request', function(res) {
       (res instanceof http.ServerResponse).should.equal(true);
       res.setHeader('X-Proxy-Test', 'done');
       emitted = true;
@@ -132,15 +161,17 @@ describe('Middleman', function() {
         done();
       });
   });
+  */
 
-  it('should emit "cache request", with http.IncomingMessage instance'+
-     'when response for given request is cached',
+  it('should emit "cache request" when response for given request is cached',
   function(done) {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
     var emitted = false;
-    instance.on('cache request', function(req) {
+    instance.on('cache request', function(req, res) {
       (req instanceof http.IncomingMessage).should.equal(true);
+      (res instanceof http.ServerResponse).should.equal(true);
+      //res.should.be.instanceOf(http.ServerResponse);
       emitted = true;
     });
     agent.get('/fast')
@@ -155,13 +186,14 @@ describe('Middleman', function() {
       });
   });
 
+/*
   it('should emit "cache response", with http.ServerResponse instance' +
      ' when response is from cache',
   function(done) {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
     var emitted = false;
-    instance.on('cache response', function(res) {
+    instance.on('cache request', function(res) {
       (res instanceof http.ServerResponse).should.equal(true);
       res.setHeader('X-Cache-Test', 'done');
       emitted = true;
@@ -179,12 +211,13 @@ describe('Middleman', function() {
           });
       });
   });
+  */
 
   it('should cache responses', function(done) {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
-    instance.on('proxy response', xProxied)
-      .on('cache response', xCached);
+    instance.on('proxy request', xProxied)
+      .on('cache request', xCached);
     agent.get('/fast')
       .expect('X-Proxied', 'true')
       .end(function(req, res) {
@@ -200,7 +233,7 @@ describe('Middleman', function() {
       maxAge: 10,
     });
     var agent = SUITE.agent;
-    instance.on('proxy response', xProxied);
+    instance.on('proxy request', xProxied);
     agent.get('/fast')
       .expect('X-Proxied', 'true')
       .end(function(err, res) {
@@ -224,8 +257,8 @@ describe('Middleman', function() {
       'get', 'post', 'put', 'head', 'del'
     ];
     instance
-      .on('cache response', xCached)
-      .on('proxy response', xProxied);
+      .on('cache request', xCached)
+      .on('proxy request', xProxied);
     var promises = methods.map(function(method) {
       return new Promise(function(resolve, reject) {
         agent[method]('/methods')
@@ -254,7 +287,7 @@ describe('Middleman', function() {
       cacheMethods: ['GET']
     });
     var agent = SUITE.agent;
-    instance.on('proxy response', xProxied);
+    instance.on('proxy request', xProxied);
     agent.post('/post')
       .end(function(err, res) {
         if (err) return done(err);
@@ -353,8 +386,8 @@ describe('Middleman', function() {
     var instance = SUITE.createInstance();
     var agent = SUITE.agent;
     instance
-      .on('proxy response', xProxied)
-      .on('cache response', xCached);
+      .on('proxy request', xProxied)
+      .on('cache request', xCached);
     agent.get('/fast')
       .expect('X-Proxied', 'true')
       .end(function(err, res) {
@@ -376,7 +409,7 @@ describe('Middleman', function() {
         called = true;
         return true;
       })
-      .on('proxy response', xProxied);
+      .on('proxy request', xProxied);
 
     agent.get('/fast')
       .expect('X-Proxied', 'true')
@@ -402,7 +435,7 @@ describe('Middleman', function() {
         return true;
       }
     });
-    instance.on('proxy response', xProxied);
+    instance.on('proxy request', xProxied);
     agent.get('/fast')
       .expect('X-Proxied', 'true')
       .end(function(err, res) {
@@ -514,7 +547,7 @@ describe('Middleman', function() {
       store: jsonStore
     });
     var agent = SUITE.agent;
-    instance.on('cache response', xCached);
+    instance.on('cache request', xCached);
     instance.on('error', function(err) {
       done(err);
     });
@@ -545,7 +578,7 @@ describe('Middleman', function() {
       store: jsonStore
     });
     var agent = SUITE.agent;
-    instance.on('cache response', xCached);
+    instance.on('cache request', xCached);
     instance.on('error', function(err) {
       done(err);
     });

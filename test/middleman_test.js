@@ -6,6 +6,7 @@ var assign = require('object-assign');
 var http = require('http');
 var MemoryStore = require('../lib/cache/store');
 var Promise = require('bluebird');
+var assert = require('assert');
 
 var PROXY_PORT = 4242;
 var PORT = 5042;
@@ -94,6 +95,18 @@ describe('Middleman', function() {
 
   afterEach(function() {
     SUITE.close();
+  });
+
+  it('Middleman() constructor should work without `new`', function() {
+    var instance = Middleman({target: ''});
+    (instance instanceof Middleman).should.equal(true);
+  });
+
+  it('constructor should throw error when options.target is omitted',
+  function() {
+    assert.throws(function() {
+      Middleman();
+    });
   });
 
   it('should emit "request" for all requests', function(done) {
@@ -428,26 +441,24 @@ describe('Middleman', function() {
     throw new Error('failed');
   });
 
-  it('Middleman() constructor should work without `new`', function() {
-    var instance = Middleman();
-    (instance instanceof Middleman).should.equal(true);
-  });
-
   it('should accept Array or String of cacheMethods, or throw TypeError',
   function() {
     var instance = new Middleman({
-      cacheMethods: 'GET'
+      cacheMethods: 'GET',
+      target: ''
     });
     instance.settings.cacheMethods.should.have.property('length');
     (instance.settings.cacheMethods[0] instanceof RegExp).should.equal(true);
     instance = new Middleman({
-      cacheMethods: ['PUT']
+      cacheMethods: ['PUT'],
+      target: ''
     });
     instance.settings.cacheMethods.should.have.property('length');
     (instance.settings.cacheMethods[0] instanceof RegExp).should.equal(true);
     try {
       Middleman({
-        cacheMethods: 42
+        cacheMethods: 42,
+        target: ''
       });
     } catch (e) {
       (e instanceof TypeError).should.equal(true);
@@ -477,11 +488,11 @@ describe('Middleman', function() {
   });
 
   it('listen() should return a http.Server instance', function() {
-    var instance = new Middleman();
+    var instance = new Middleman({target: ''});
     var server = instance.listen(3333);
     (server instanceof http.Server).should.equal(true);
+    server.close();
   });
-
 
   it('should validate resolved values from the cache and implement parsing '+
   'when json is resolved', function(done) {
@@ -545,6 +556,7 @@ describe('Middleman', function() {
       });
   });
 
+
   it('should emit "error" and respond with 500 when store fails to '+
   'resolve CachedResponse instance', function(done) {
     var badStore = new MemoryStore();
@@ -581,6 +593,8 @@ describe('Middleman', function() {
       });
   });
 
+
+
   it('should emit "error" and respond with 500 when cache get fails', function(done) {
     var instance = SUITE.createInstance();
     instance.cache.get = function() {
@@ -601,7 +615,8 @@ describe('Middleman', function() {
       });
   });
 
-  it('should emit "error" when cache set fails, and proceed with proxy', function(done) {
+  it('should emit "error" when cache set fails, and proceed with proxy',
+  function(done) {
     var instance = SUITE.createInstance();
     instance.cache.set = function() {
       return Promise.reject(new Error('bad cache'));
@@ -622,6 +637,7 @@ describe('Middleman', function() {
    * httpError
    */
 
+
   it('should use options.httpError', function(done) {
     var instance = SUITE.createInstance({
       target: 'http://localhost:3333', // should not be in use
@@ -630,46 +646,46 @@ describe('Middleman', function() {
         res.statusCode = 500;
         res.end('Test');
       }
-    });
-    instance.on('error', function(err) {
-      console.log(err);
-    });
+   });
+       //console.log('options.httpError', instance.settings);
+    instance.on('error', function(){});
     var agent = SUITE.agent;
     agent.get('/')
-      .expect('X-Http-Error', 'true')
-      .expect(500)
-      .end(done);
+     .expect('X-Http-Error', 'true')
+     .end(function(err, res) {
+       if (err) return done(err);
+       done();
+     });
   });
 
   it('should use #.httpError(hanlder)', function(done) {
-    var instance = SUITE.createInstance({
-      target: 'http://localhost:3333'
-    });
-    instance.httpError(function(req, res) {
-      res.setHeader('X-Http-Error', 'true');
-      res.statusCode = 500;
-      res.end('Test');
-    });
-    instance.on('error', function(err) {
-      console.log(err);
-    });
-    var agent = SUITE.agent;
-    agent.get('/')
-      .expect('X-Http-Error', 'true')
-      .expect(500)
-      .end(done);
+   var instance = SUITE.createInstance({
+     target: 'http://localhost:3333'
+   });
+   instance.httpError(function(req, res) {
+     res.setHeader('X-Http-Error', 'true');
+     res.statusCode = 500;
+     res.end('Test');
+   });
+   instance.on('error', function(){});
+   var agent = SUITE.agent;
+   agent.get('/')
+     .expect('X-Http-Error', 'true')
+     .expect(500)
+     .end(done);
   });
 
   it('constructor, and #httpError(), should throw TE for httpError argument',
   function() {
-    (function() {
+    assert.throws(function() {
       Middleman({
-        httpError: false
+        httpError: 42
       });
-    }).should.throw(TypeError);
-    (function() {
-      var instance = SUITE.createInstance();
-      intsance.httpError(42);
-    }).should.throw(TypeError);
+    });
+
+    assert.throws(function() {
+      Middleman().httpError('42');
+    });
   });
+
 });

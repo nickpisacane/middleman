@@ -141,27 +141,6 @@ describe('Middleman', function() {
       });
   });
 
-/*
-  it('should emit "proxy response", when response is being proxied'+
-     ' and pass http.ServerResponse instance',
-  function(done) {
-    var instance = SUITE.createInstance();
-    var agent = SUITE.agent;
-    var emitted = false;
-    instance.on('proxy request', function(res) {
-      (res instanceof http.ServerResponse).should.equal(true);
-      res.setHeader('X-Proxy-Test', 'done');
-      emitted = true;
-    });
-    agent.get('/fast')
-      .expect('X-Proxy-Test', 'done')
-      .end(function(err, res) {
-        if (err) return done(err);
-        emitted.should.equal(true);
-        done();
-      });
-  });
-  */
 
   it('should emit "cache request" when response for given request is cached',
   function(done) {
@@ -186,32 +165,6 @@ describe('Middleman', function() {
       });
   });
 
-/*
-  it('should emit "cache response", with http.ServerResponse instance' +
-     ' when response is from cache',
-  function(done) {
-    var instance = SUITE.createInstance();
-    var agent = SUITE.agent;
-    var emitted = false;
-    instance.on('cache request', function(res) {
-      (res instanceof http.ServerResponse).should.equal(true);
-      res.setHeader('X-Cache-Test', 'done');
-      emitted = true;
-    });
-
-    agent.get('/fast')
-      .end(function(err, res) {
-        if (err) return done(err);
-        agent.get('/fast')
-          .expect('X-Cache-Test', 'done')
-          .end(function(err, res) {
-            if (err) return done(err);
-            emitted.should.equal(true);
-            done();
-          });
-      });
-  });
-  */
 
   it('should cache responses', function(done) {
     var instance = SUITE.createInstance();
@@ -663,5 +616,60 @@ describe('Middleman', function() {
     agent.get('/fast')
       .expect(200)
       .end(done);
+  });
+
+  /**
+   * httpError
+   */
+
+  it('should use options.httpError', function(done) {
+    var instance = SUITE.createInstance({
+      target: 'http://localhost:3333', // should not be in use
+      httpError: function(req, res) {
+        res.setHeader('X-Http-Error', 'true');
+        res.statusCode = 500;
+        res.end('Test');
+      }
+    });
+    instance.on('error', function(err) {
+      console.log(err);
+    });
+    var agent = SUITE.agent;
+    agent.get('/')
+      .expect('X-Http-Error', 'true')
+      .expect(500)
+      .end(done);
+  });
+
+  it('should use #.httpError(hanlder)', function(done) {
+    var instance = SUITE.createInstance({
+      target: 'http://localhost:3333'
+    });
+    instance.httpError(function(req, res) {
+      res.setHeader('X-Http-Error', 'true');
+      res.statusCode = 500;
+      res.end('Test');
+    });
+    instance.on('error', function(err) {
+      console.log(err);
+    });
+    var agent = SUITE.agent;
+    agent.get('/')
+      .expect('X-Http-Error', 'true')
+      .expect(500)
+      .end(done);
+  });
+
+  it('constructor, and #httpError(), should throw TE for httpError argument',
+  function() {
+    (function() {
+      Middleman({
+        httpError: false
+      });
+    }).should.throw(TypeError);
+    (function() {
+      var instance = SUITE.createInstance();
+      intsance.httpError(42);
+    }).should.throw(TypeError);
   });
 });

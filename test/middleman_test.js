@@ -327,6 +327,7 @@ describe('Middleman', function() {
   function() {
     try {
       Middleman({
+        target: '',
         createKey: 'not a function'
       });
     } catch (e) {
@@ -339,7 +340,7 @@ describe('Middleman', function() {
   it('should throw a TypError whe .cacheKey() recieved non-function type argument',
   function() {
     try {
-      Middleman()
+      Middleman({target: ''})
         .createKey(42);
     } catch (e) {
       (e instanceof Error).should.equal(true);
@@ -420,6 +421,7 @@ describe('Middleman', function() {
   function() {
     try {
       Middleman({
+        target: '',
         bypass: 42
       });
     } catch (e) {
@@ -432,7 +434,7 @@ describe('Middleman', function() {
   it('should throw a TypeError when .bypass() recieves non-function type argument',
   function() {
     try {
-      Middleman()
+      Middleman({target: ''})
         .bypass(42);
     } catch (e) {
       (e instanceof Error).should.equal(true);
@@ -679,12 +681,13 @@ describe('Middleman', function() {
   function() {
     assert.throws(function() {
       Middleman({
+        target: '',
         httpError: 42
       });
     });
 
     assert.throws(function() {
-      Middleman().httpError('42');
+      Middleman({target: ''}).httpError('42');
     });
   });
 

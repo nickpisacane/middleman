@@ -83,4 +83,16 @@ describe('CachedResponse', function() {
       throw new Error('Failed');
     }
   });
+
+  it('should work with node v0.10 buffers', function() {
+    var obj = {
+      status: 200,
+      headers: {},
+      body: [116, 101, 115, 116]
+    };
+
+    var parsed = CachedResponse.parse(obj);
+    (parsed instanceof CachedResponse).should.equal(true);
+    parsed.body.toString().should.equal('test');
+  });
 });

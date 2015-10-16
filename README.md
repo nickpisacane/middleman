@@ -2,7 +2,19 @@
   [![Travis][travis-image]][travis-url]
   [![Coveralls][coveralls-image]][coveralls-url]
 
-Reverse Proxy with caching, work in progress.
+Reverse proxy with content caching, work in progress.
+
+
+```js
+var Middleman = require('middleman');
+
+Middleman({target: 'http://some.api.com'})
+  .listen(3000, () => {
+    console.log('Listening on port 3000');
+  });
+```
+
+
 
 [travis-image]: https://travis-ci.org/Nindaff/middleman.svg?branch=master
 [travis-url]: https://travis-ci.org/Nindaff/middleman

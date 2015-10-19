@@ -22,11 +22,6 @@ const proxy = new Middleman({
     console.log('Proxing "http://some.api.com" on port 3000');
   });
 ```
-### Motivation
-A project for a client I have been working on recently depended upon a very slow
-api; up to 40+ seconds on some instances. Due to circumstances, a standalone reverse
-proxy was not optimal nor on an option. While making a hand-rolled solution, I thought it would be useful to have an in-application reverse proxy solution for some of my other
-small apps, so I made Middleman!
 
 ### Caching
 By default, Middleman's cache is a Least-Recently-Used managed, in-memory cache,
@@ -50,6 +45,12 @@ The "store" is really just an interface, and a simple one at that.
 
 More than that, it's perfectly fine to resolve JSON strings; Middleman will
 automatically take care of parsing.
+
+### Motivation
+I have recently been working on a project that depended upon a very
+slow api; up to 40+ seconds in some instances. Due to circumstances, a standalone reverse
+proxy was not an option. While making a hand-rolled solution, I thought it would be useful to have an in-application reverse proxy solution for some of my other
+small apps, so I made Middleman!
 
 ## Examples
 
@@ -103,7 +104,6 @@ const proxy = new Middleman({
     res.setHeader('X-Cached', 'true');
   });
 ```
-###
 
 ## API
 #### Middleman([options])

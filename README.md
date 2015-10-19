@@ -53,7 +53,7 @@ More than that, it's perfectly fine to resolve JSON strings; Middleman will
 automatically take care of parsing.
 
 ### Motivation
-I have recently been working on a project that depended upon a very
+Recently, I have been working on a project that depended upon a very
 slow api; up to 40+ seconds in some instances. Due to circumstances, a standalone reverse
 proxy was not an option. While making a hand-rolled solution, I thought it would be useful to have an in-application reverse proxy solution for some of my other
 small apps, so I made Middleman!

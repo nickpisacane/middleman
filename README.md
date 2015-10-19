@@ -25,7 +25,7 @@ const proxy = new Middleman({
 ### Motivation
 A project for a client I have been working on recently depended upon a very slow
 api; up to 40+ seconds on some instances. Due to circumstances, a standalone reverse
-proxy was not optimal nor on an option. While making a hand-rolled solution, I though it would be useful to have an in-application reverse proxy solution for some of my other
+proxy was not optimal nor on an option. While making a hand-rolled solution, I thought it would be useful to have an in-application reverse proxy solution for some of my other
 small apps, so I made Middleman!
 
 ### Caching
@@ -34,7 +34,7 @@ but it can just as easily work with any persistent store.
 
 The Cache really manages an index of "keys" that are associated with "entries" in the
 store. The keys also contain the size in bytes of the associated entry, which allows
-the LRU to properly manage the keys. Basically, when a key is evicted, a call is
+the LRU work properly. Basically, when a key is evicted, a call is
 made to the store to deleted that entry. This allows the LRU to work even with
 out-of-memory stores. See [Implementing a Store](#implementing-a-store) for more
 details.
@@ -184,7 +184,7 @@ instance
 ### Licence
 
 MIT
- 
+
 [travis-image]: https://travis-ci.org/Nindaff/middleman.svg?branch=master
 [travis-url]: https://travis-ci.org/Nindaff/middleman
 [coveralls-image]: https://coveralls.io/repos/Nindaff/middleman/badge.svg?branch=master&service=github

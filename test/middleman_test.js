@@ -27,6 +27,9 @@ server.all('/methods', function(req, res) {
 server.get('/redirect', function(req, res) {
   res.redirect('/fast');
 });
+server.get('/headers', function(req, res) {
+  res.json(req.headers);
+});
 server.listen(PROXY_PORT);
 
 /**
@@ -693,4 +696,23 @@ describe('Middleman', function() {
     });
   });
 
+  it('should allow headers to be appended to the proxied requests',
+  function(done) {
+    var instance = SUITE.createInstance({
+      setHeaders: {
+        'X-Foo': 'bar'
+      }
+    });
+    var agent = SUITE.agent;
+    agent.get('/headers')
+      .set('X-Bar', 'foo')
+      .end(function(err, res) {
+        if (err) return done(err);
+        res.body.should.have.property('x-foo');
+        res.body['x-foo'].should.equal('bar');
+        res.body.should.have.property('x-bar');
+        res.body['x-bar'].should.equal('foo');
+        done();
+      });
+  });
 });

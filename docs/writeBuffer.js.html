@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>middleman</title>
+    <title>middleman-proxy</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" type="text/css">
@@ -12,8 +12,8 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">middleman</h1>
-      <h2 class="project-tagline"></h2><a href="https://npmjs.com/package/middleman" target="_blank" class="btn">View on npm</a>
+      <h1 class="project-name">middleman-proxy</h1>
+      <h2 class="project-tagline">Http Reverse Proxy with caching</h2><a href="https://npmjs.com/package/middleman-proxy" target="_blank" class="btn">View on npm</a>
     </section>
     <section data-spy="scroll" data-target=".scrollspy" class="main-content">
       <div class="row">
@@ -52,9 +52,6 @@ function WriteBuffer() {
 inherits(WriteBuffer, Writable);
 
 WriteBuffer.prototype._write = function(chunk, encoding, cb) {
-  if (!(chunk instanceof Buffer)) {
-    chunk = new Buffer(chunk, encoding);
-  }
   this._buffer.push(chunk);
   return cb();
 };

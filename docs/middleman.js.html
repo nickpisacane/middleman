@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>middleman</title>
+    <title>middleman-proxy</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" type="text/css">
@@ -12,8 +12,8 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">middleman</h1>
-      <h2 class="project-tagline"></h2><a href="https://npmjs.com/package/middleman" target="_blank" class="btn">View on npm</a>
+      <h1 class="project-name">middleman-proxy</h1>
+      <h2 class="project-tagline">Http Reverse Proxy with caching</h2><a href="https://npmjs.com/package/middleman-proxy" target="_blank" class="btn">View on npm</a>
     </section>
     <section data-spy="scroll" data-target=".scrollspy" class="main-content">
       <div class="row">
@@ -27,7 +27,7 @@
                 <ul class="nav nav-stacked">
                   <li><a href="#Middleman"><i class="alert alert-success"></i><span>Middleman</span></a>
                   </li>
-                  <li><a href="#handle"><i class="alert alert-info"></i><span>handle</span></a>
+                  <li><a href="#http"><i class="alert alert-info"></i><span>http</span></a>
                   </li>
                   <li><a href="#handler"><i class="alert alert-info"></i><span>handler</span></a>
                   </li>
@@ -76,42 +76,68 @@
               <tr>
                 <td>options.target</td>
                 <td>String</td>
-                <td><p>URI for proxy</p></td>
-              </tr>
-              <tr>
-                <td>[options.setHeaders</td>
-                <td>Object</td>
-                <td><p>= {}] Headers to set for proxied request</p></td>
+                <td><p>URI to proxy for.</p></td>
               </tr>
               <tr>
                 <td>[options.cacheMethods</td>
-                <td>Array, String</td>
-                <td><p>= &#39;any&#39;] HTTP methods to cache for</p></td>
+                <td>String, Array.&lt;String&gt;</td>
+                <td><p>= &#39;any&#39;]                               Http methods that should be cached, blocks all<br />                              other HTTP methods from the cache. By Default<br />                              caches for all HTTP methods.</p></td>
               </tr>
               <tr>
                 <td>[options.maxAge</td>
                 <td>Number</td>
-                <td><p>= Infinity] Cache age</p></td>
+                <td><p>= Infinity] Max cache age (milliseconds).</p></td>
               </tr>
               <tr>
-                <td>[options.cacheKey]</td>
+                <td>[options.maxSize</td>
+                <td>Number, String</td>
+                <td><p>= Infinity] Max size in bytes for the                                         Cache. If a string is passed, it will<br />                                        be parsed by the <code>bytes</code> library.</p></td>
+              </tr>
+              <tr>
+                <td>[options.lru</td>
+                <td>Boolean</td>
+                <td><p>= true] Implement LRU caching.</p></td>
+              </tr>
+              <tr>
+                <td>[options.store</td>
+                <td>Store, Object</td>
+                <td><p>= MemoryStore] Store interface for cache</p></td>
+              </tr>
+              <tr>
+                <td>[options.followRedirect</td>
+                <td>Boolean</td>
+                <td><p>= true] Follow redirects, passed                                          to <code>request</code> library.</p></td>
+              </tr>
+              <tr>
+                <td>[options.bypass</td>
                 <td>Function</td>
-                <td><p>Default is {something}</p></td>
+                <td><p>= (res) =&gt; false] A function that takes                                   http.IncomingMessage instance from the<br />                                  <code>request</code> library and returns a boolean<br />                                  <code>true</code> will bypass the cache, <code>false</code> will<br />                                  tell middleman to cache the response. The<br />                                  <code>res</code> is an http response from the <code>target</code></p></td>
+              </tr>
+              <tr>
+                <td>[optoins.createKey</td>
+                <td>Function</td>
+                <td><p>= (req, url) =&gt; &quot;${req.method}:${url.path}&quot;]                                      A function that takes two arguments:<br />                                     <code>req</code> (http.IncomingMessage) and <code>url</code><br />                                     (Url) and returns a string.</p></td>
+              </tr>
+              <tr>
+                <td>[options.httpError</td>
+                <td>Function</td>
+                <td><p>(req,res)] A function that takes two                                      arguments: req (http.IncomingMessage)<br />                                     and res (http.ServerResponse), and sends<br />                                     an appropriate response when an error<br />                                     occured. By default this is a 500 error<br />                                     message.</p></td>
               </tr>
             </tbody>
           </table>
-          <div class="description"><p>Middleman</p></div>
+          <div class="description"><p>Middle man</p></div>
           <pre><code class="language-javascript">function Middleman(options) {
   if (!(this instanceof Middleman)) return new Middleman(options);
+  options = options || {};
   EventEmitter.call(this);
   this.settings = assign({
-    setHeaders: {},
     cacheMethods: 'any',
     followRedirect: true,
     maxAge: Infinity,
     maxSize: Infinity,
     lru: true,
-    store: undefined
+    store: undefined,
+    target: undefined
   }, options);
 
   if (options.bypass) {
@@ -120,12 +146,23 @@
   if (options.createKey) {
     this._createKey = options.createKey;
   }
+  if (options.httpError) {
+    this._httpError = options.httpError;
+  } else {
+    this._httpError = null;
+  }
 
   if (typeof this._createKey !== 'function') {
     throw new TypeError('options.createKey must be a function');
   }
   if (typeof this._bypass !== 'function') {
     throw new TypeError('options.bypass must be a function');
+  }
+  if (this._httpError &amp;&amp; typeof this._httpError !== 'function') {
+    throw new TypeError('options.httpError must be a function');
+  }
+  if (typeof this.settings.target === 'undefined') {
+    throw new Error('Middleman requires options.target');
   }
 
   this.server = null;
@@ -155,11 +192,11 @@ Middleman.prototype.init = function() {
     throw new TypeError('options.cacheMethods must be of String or Array type');
   }
 };</code></pre>
-          <section id="handle">
-            <h1>handle</h1>
+          <section id="http">
+            <h1>http</h1>
             <h5 class="subheader"></h5>
             <p>
-              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Middleman.prototype.handle()</span><span>&nbsp;</span>
+              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Middleman.prototype.http()</span><span>&nbsp;</span>
             </p>
           </section>
           <table class="table table-bordered table-striped">
@@ -184,26 +221,30 @@ Middleman.prototype.init = function() {
             </tbody>
           </table>
           <div class="description"><p>Handle a <code>Request</code> event</p></div>
-          <pre><code class="language-javascript">Middleman.prototype.handle = function(req, res) {
+          <pre><code class="language-javascript">Middleman.prototype.http = function(req, res) {
   var self = this;
-  var urlObj = req.__urlObj = Url.parse(req.url);
-  var key = self._createKey(req, urlObj);
+  var url = req.__url = Url.parse(req.url);
+  var key = self._createKey(req, url);
+  self.emit('request', req, res);
   self.cache.get(key)
     .then(function(data) {
       //console.log('data for key: '+ key + ' data: ', data);
       if (!data) {
-        self.emit('proxy request', req);
+        self.emit('proxy request', req, res);
         var proxy = self._proxy(req);
-        self.emit('proxy response', res);
+        proxy.on('error', function(err) {
+          self.emit('error', err);
+          self._errorResponse(req, res);
+        });
         proxy.pipe(res);
       } else {
-        self.emit('cache request', req);
-        self._send(data.value, res);
+        self.emit('cache request', req, res);
+        self._send(data.value, req, res);
       }
     })
     .catch(function(err) {
       self.emit('error', err);
-      self._errorResponse(res);
+      self._errorResponse(req, res);
     });
 };</code></pre>
           <section id="handler">
@@ -213,9 +254,9 @@ Middleman.prototype.init = function() {
               <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Middleman.prototype.handler()</span><span>&nbsp;</span>
             </p>
           </section>
-          <div class="description"><p>Convenience method, returns <code>handle</code> with instance context</p></div>
+          <div class="description"><p>Convenience method, returns <code>http</code> bound with instance context</p></div>
           <pre><code class="language-javascript">Middleman.prototype.handler = function() {
-  return this.handle.bind(this);
+  return this.http.bind(this);
 };</code></pre>
           <section id="listen">
             <h1>listen</h1>
@@ -262,7 +303,7 @@ Middleman.prototype.init = function() {
           <div class="description"><p>Set <code>createKey</code>, chainable</p></div>
           <pre><code class="language-javascript">Middleman.prototype.createKey = function(fn) {
   if (typeof fn !== 'function') {
-    throw new TypeError('fn must be of Function type');
+    throw new TypeError('createKey requires a function');
   }
   this._createKey = fn;
   return this;
@@ -298,9 +339,17 @@ Middleman.prototype.init = function() {
           <div class="description"><p>Set <code>bypass</code>, chainable.</p></div>
           <pre><code class="language-javascript">Middleman.prototype.bypass = function(fn) {
   if (typeof fn !== 'function') {
-    throw new TypeError('fn must be of Function type');
+    throw new TypeError('bypass requires a function');
   }
   this._bypass = fn;
+  return this;
+};
+
+Middleman.prototype.httpError = function(fn) {
+  if (typeof fn !== 'function') {
+    throw new TypeError('httpError requires a function');
+  }
+  this._httpError = fn;
   return this;
 };</code></pre>
           <section id="createRegExp">
@@ -422,17 +471,19 @@ module.exports = Middleman;</code></pre>
               </tr>
             </tbody>
           </table>
-          <div class="description"><p>Create a new CachedResponse from a CachedResponse-like object. The object must<br />have the following properties: <code>status</code>, <code>headers</code>, and <code>body</code>, to meet the<br />&quot;CachedResponse-like&quot; standards. Also the <code>body</code> property can be the result<br />of parsing a JSON-serialized buffer, meaning it be an object with two properties<br /><code>type</code>, and <code>data</code>.</p></div>
+          <div class="description"><p>Create a new CachedResponse from a CachedResponse-like object. The object must<br />have the following properties: <code>status</code>, <code>headers</code>, and <code>body</code>, to meet the<br />&quot;CachedResponse-like&quot; standards. Also the <code>body</code> property can be the result<br />of parsing a JSON-serialized buffer, meaning it be an object with two<br />properties<br /><code>type</code>, and <code>data</code>.</p></div>
           <pre><code class="language-javascript">CachedResponse.parse = function(obj) {
   if (typeof obj !== 'object'         ||
       typeof obj.status !== 'number'  ||
       typeof obj.headers !== 'object' ||
-      (typeof obj.body !== 'object' || obj.body instanceof Buffer)) {
+      (typeof obj.body !== 'object' &amp;&amp; !(obj.body instanceof Buffer))) {
     throw new Error('Invalid CachedResponse');
   }
   var body;
   if (obj.body instanceof Buffer) {
     body = obj.body;
+  } else if (Array.isArray(obj.body)) {
+    body = new Buffer(obj.body);
   } else {
     if (obj.body.type !== 'Buffer' || !Array.isArray(obj.body.data)) {
       throw new Error('Invalid CachedResponse Buffer');

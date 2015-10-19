@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>middleman</title>
+    <title>middleman-proxy</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/3.0.3/normalize.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700" type="text/css">
@@ -12,8 +12,8 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">middleman</h1>
-      <h2 class="project-tagline"></h2><a href="https://npmjs.com/package/middleman" target="_blank" class="btn">View on npm</a>
+      <h1 class="project-name">middleman-proxy</h1>
+      <h2 class="project-tagline">Http Reverse Proxy with caching</h2><a href="https://npmjs.com/package/middleman-proxy" target="_blank" class="btn">View on npm</a>
     </section>
     <section data-spy="scroll" data-target=".scrollspy" class="main-content">
       <div class="row">
@@ -23,7 +23,15 @@
             <li><a href="../cache/entry.js.html">cache/entry.js</a></li>
             <li class="active"><a href="../cache/index.js.html">cache/index.js
                 <ul class="nav nav-stacked">
-                  <li><a href="#EventEmitter"><i class="alert alert-success"></i><span>EventEmitter</span></a>
+                  <li><a href="#Cache"><i class="alert alert-success"></i><span>Cache</span></a>
+                  </li>
+                  <li><a href="#get"><i class="alert alert-info"></i><span>get</span></a>
+                  </li>
+                  <li><a href="#set"><i class="alert alert-info"></i><span>set</span></a>
+                  </li>
+                  <li><a href="#del"><i class="alert alert-info"></i><span>del</span></a>
+                  </li>
+                  <li><a href="#clear"><i class="alert alert-info"></i><span>clear</span></a>
                   </li>
                 </ul></a></li>
             <li><a href="../cache/store.js.html">cache/store.js</a></li>
@@ -32,23 +40,51 @@
           </ul>
         </div>
         <div class="col-md-9">
-          <section id="EventEmitter">
-            <h1>EventEmitter</h1>
+          <section id="Cache">
+            <h1>Cache</h1>
             <h5 class="subheader"></h5>
             <p>
-              <div class="label label-success radius ctx-type">declaration</div><span>&nbsp;</span><span>EventEmitter</span><span>&nbsp;</span>
+              <div class="label label-success radius ctx-type">constructor</div><span>&nbsp;</span><span>Cache()</span><span>&nbsp;</span>
             </p>
           </section>
-          <div class="description"></div>
-          <pre><code class="language-javascript">var EventEmitter = require('events').EventEmitter;
-var inherits = require('util').inherits;
-var bytes = require('bytes');
-var LRU = require('lru-cache');
-var MemoryStore = require('./store');
-var KeyEntry = require('./entry').KeyEntry;
-var CacheEntry = require('./entry').CacheEntry;
-
-function Cache(options) {
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th style="width:20%">Option name</th>
+                <th style="width:20%">Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>options</td>
+                <td>Object</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>[options.store</td>
+                <td>Store</td>
+                <td><p>= MemoryStore] The store</p></td>
+              </tr>
+              <tr>
+                <td>[options.maxAge</td>
+                <td>Number</td>
+                <td><p>= Inifinity] Max cache entry age</p></td>
+              </tr>
+              <tr>
+                <td>[options.maxSize]</td>
+                <td>Number, String</td>
+                <td><p>Size in bytes, number or string                                          If string, parsed by <code>bytes</code>.</p></td>
+              </tr>
+              <tr>
+                <td>[options.lru</td>
+                <td>Boolean</td>
+                <td><p>= true] Use lru</p></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="description"><p>Cache instance provides abstraction from underlying store. By default a<br />index of <code>KeyEntry</code>s are managed by <code>lru-cache</code>. This allows the store to<br />be a database wrapper, or some other abstraction, and yet still implement<br />LRU.</p></div>
+          <pre><code class="language-javascript">function Cache(options) {
   if (!(this instanceof Cache)) return new Cache(options);
   EventEmitter.call(this);
   options = options || {};
@@ -88,9 +124,37 @@ Cache.prototype.init = function() {
       }
     }
   });
-};
-
-Cache.prototype.get = function(key) {
+};</code></pre>
+          <section id="get">
+            <h1>get</h1>
+            <h5 class="subheader"></h5>
+            <p>
+              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Cache.prototype.get()</span><span>&nbsp;</span>
+            </p>
+          </section>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th style="width:20%">Option name</th>
+                <th style="width:20%">Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>key</td>
+                <td>String</td>
+                <td><p>Cache key</p></td>
+              </tr>
+              <tr>
+                <td>return</td>
+                <td>Promise</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="description"><p>Gets an entry from the store, resolves <code>null</code> for no value, false for invalid<br />and <code>CacheEntry</code> otherwise</p></div>
+          <pre><code class="language-javascript">Cache.prototype.get = function(key) {
   var self = this;
   return self.store.get(key)
     .then(function(cacheEntry) {
@@ -117,20 +181,53 @@ Cache.prototype.get = function(key) {
         return false;
       }
       if (!self._lru) {
+        if (!self._keyExistsBoth(key)) {
+          self._setKey(key);
+        }
         return cacheEntry;
       }
-      var keyEntry = self._lruCache.get(key);
-      if (!keyEntry) {
-        keyEntry = new KeyEntry(key, cacheEntry.size());
-        // Possibly deprecate
-        keyEntry.setCreated(cacheEntry.created);
+      if (!self._keyExistsBoth(key)) {
+        var keyEntry = new KeyEntry(key, cacheEntry.size());
         self._lruCache.set(key, keyEntry);
       }
       return cacheEntry;
     });
-};
-
-Cache.prototype.set = function(key, value) {
+};</code></pre>
+          <section id="set">
+            <h1>set</h1>
+            <h5 class="subheader"></h5>
+            <p>
+              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Cache.prototype.set()</span><span>&nbsp;</span>
+            </p>
+          </section>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th style="width:20%">Option name</th>
+                <th style="width:20%">Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>key</td>
+                <td>String</td>
+                <td><p>Cache key.</p></td>
+              </tr>
+              <tr>
+                <td>value</td>
+                <td>Any</td>
+                <td><p>Cache value</p></td>
+              </tr>
+              <tr>
+                <td>return</td>
+                <td>Promise</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="description"><p>Creates a <code>CacheEntry</code> instance with the given <code>value</code>, and persists to<br />store.</p></div>
+          <pre><code class="language-javascript">Cache.prototype.set = function(key, value) {
   var self = this;
   var cacheEntry = new CacheEntry(key, value);
 
@@ -138,16 +235,43 @@ Cache.prototype.set = function(key, value) {
     .then(function() {
       if (self._lru) {
         var keyEntry = new KeyEntry(key, cacheEntry.size());
-        keyEntry.setCreated(cacheEntry.created);
         self._lruCache.set(key, keyEntry);
       } else {
         self._setKey(key);
       }
       return cacheEntry;
     });
-};
-
-Cache.prototype.del = function(key) {
+};</code></pre>
+          <section id="del">
+            <h1>del</h1>
+            <h5 class="subheader"></h5>
+            <p>
+              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Cache.prototype.del()</span><span>&nbsp;</span>
+            </p>
+          </section>
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th style="width:20%">Option name</th>
+                <th style="width:20%">Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>key</td>
+                <td>String</td>
+                <td><p>Cache key.</p></td>
+              </tr>
+              <tr>
+                <td>return</td>
+                <td>Promise</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="description"><p>Delete an entry.</p></div>
+          <pre><code class="language-javascript">Cache.prototype.del = function(key) {
   var self = this;
   self._protect(key);
   return self.store.del(key)
@@ -159,9 +283,16 @@ Cache.prototype.del = function(key) {
         self._removeKey(key);
       }
     });
-};
-
-Cache.prototype.clear = function() {
+};</code></pre>
+          <section id="clear">
+            <h1>clear</h1>
+            <h5 class="subheader"></h5>
+            <p>
+              <div class="label label-info radius ctx-type">method</div><span>&nbsp;</span><span>Cache.prototype.clear()</span><span>&nbsp;</span>
+            </p>
+          </section>
+          <div class="description"><p>Clear the entire cache, for LRU keys are protected from automatic eviction.</p></div>
+          <pre><code class="language-javascript">Cache.prototype.clear = function() {
   var self = this;
   var keys;
   if (self._lru) {
@@ -189,70 +320,7 @@ Cache.prototype.clear = function() {
   });
 
   return Promise.all(promises);
-};
-
-Cache.prototype._setKey = function(key) {
-  var self = this;
-  if (!self._lru) {
-    self._keys.push(key);
-  }
-};
-
-Cache.prototype._removeKey = function(key) {
-  var self = this;
-  if (!self._lru) {
-    removeElement(self._keys, key);
-  }
-};
-
-Cache.prototype._del = function(key) {
-  var self = this;
-  self.store.del(key)
-    .then(function() {
-      self.emit('delete', key);
-    })
-    .catch(function(err) {
-      self.emit('error', err);
-    });
-};
-
-Cache.prototype._protect = function(key) {
-  var self = this;
-  if (self._lru) {
-    self._protected.push(key);
-  }
-};
-
-Cache.prototype._unProtect = function(key) {
-  var self = this;
-  if (self._lru) {
-    removeElement(self._protected, key);
-  }
-};
-
-Cache.prototype._isProtected = function(key) {
-  var self = this;
-  if (!self._lru) {
-    return true;
-  }
-  return self._protected.indexOf(key) !== -1;
-};
-
-Cache.prototype._isValid = function(cacheEntry) {
-  var self = this;
-  return (Date.now() - cacheEntry.created) &lt; self._maxAge;
-};
-
-module.exports = Cache;
-module.exports.KeyEntry = KeyEntry;
-module.exports.CacheEntry = CacheEntry;
-
-function removeElement(arr, val) {
-  var index = arr.indexOf(val);
-  if (~index) {
-    arr.splice(index, 1);
-  }
-}</code></pre>
+};</code></pre>
           <div class="footer site-footer">
             <div class="span site-footer-owner"><a href="https://github.com/iwatakeshi/doxx-theme-cayman">Cayman</a> is maintained by <a href="https://github.com/iwatakeshi">iwatakeshi</a>.</div>
             <div class="span site-footer-credits">This page was generated by <a href="https://github.com/FGRibreau/doxx">Doxx</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</div>

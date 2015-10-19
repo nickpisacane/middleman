@@ -489,11 +489,13 @@ describe('Middleman', function() {
       });
   });
 
-  it('listen() should return a http.Server instance', function() {
+  it('listen() should `populate` server property, and return instance',
+  function() {
     var instance = new Middleman({target: ''});
-    var server = instance.listen(3333);
-    (server instanceof http.Server).should.equal(true);
-    server.close();
+    var _this = instance.listen(3333);
+    _this.should.equal(instance);
+    (instance.server instanceof http.Server).should.equal(true);
+    instance.server.close();
   });
 
   it('should validate resolved values from the cache and implement parsing '+

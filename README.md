@@ -3,6 +3,12 @@
   [![Coveralls][coveralls-image]][coveralls-url]
 
 Reverse proxy with content caching.
+* [Installation](#installation)
+* [Usage](#usage)
+* [Caching](#caching)
+* [Implemeting a Store](#implementing-a-store)
+* [Examples](#examples)
+* [API](#api)
 
 ## Installation
 ```sh
@@ -85,7 +91,7 @@ const proxy = new Middleman({
   .listen(3000);
 ```
 
-### Handling Responses
+### Request Events
 ```js
 const Middleman = require('middleman-proxy');
 const proxy = new Middleman({

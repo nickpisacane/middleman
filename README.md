@@ -2,7 +2,7 @@
   [![Travis][travis-image]][travis-url]
   [![Coveralls][coveralls-image]][coveralls-url]
 
-Reverse proxy with content caching.
+HTTP proxy with content caching.
 * [Installation](#installation)
 * [Usage](#usage)
 * [Caching](#caching)

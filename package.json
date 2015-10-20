@@ -1,6 +1,6 @@
 {
   "name": "middleman-proxy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Nick Pisacane <pisacanen@gmail.com>",
   "description": "Http Reverse Proxy with content caching.",
   "keywords": [

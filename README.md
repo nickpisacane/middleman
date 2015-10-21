@@ -54,8 +54,8 @@ automatically take care of parsing.
 
 ### Motivation
 Recently, I have been working on a project that depended upon a very
-slow api; up to 40+ seconds in some instances. Due to circumstances, a standalone reverse
-proxy was not an option. While making a hand-rolled solution, I thought it would be useful to have an in-application reverse proxy solution for small apps. So I made Middleman!
+slow api; up to 40+ seconds in some instances. Due to circumstances, a standalone
+proxy was not an option. While making a hand-rolled solution, I thought it would be useful to have an in-application caching proxy solution for small apps. So I made Middleman!
 
 ## Examples
 

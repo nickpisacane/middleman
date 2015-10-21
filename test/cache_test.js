@@ -411,7 +411,7 @@ describe('CacheLib', function() {
       var cache = new Cache();
       should(cache._keys).equal(null);
       cache._setKey('test');
-      cache._removeKey('test');
+      cache._removeKeyBoth('test');
     });
 
     it('should not "protect" keys when NOT LRU', function() {

@@ -1,6 +1,6 @@
 {
   "name": "middleman-proxy",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "Nick Pisacane <pisacanen@gmail.com>",
   "description": "HTTP Proxy with content caching.",
   "keywords": [

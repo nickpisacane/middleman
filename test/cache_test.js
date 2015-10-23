@@ -17,6 +17,29 @@ function makeArr(s, f) {
   return ret;
 }
 
+function cacheLifeCycle(cache, done) {
+  cache.set('foo', 'bar')
+    .then(function(val) {
+      (val instanceof CacheEntry).should.equal(true);
+      val.value.should.equal('bar');
+      return cache.get('foo');
+    })
+    .then(function(val) {
+      (val instanceof CacheEntry).should.equal(true);
+      val.value.should.equal('bar');
+      return cache.del('foo');
+    })
+    .then(function(val) {
+      val.should.equal(true);
+      return cache.get('foo');
+    })
+    .then(function(val) {
+      should(val).equal(null);
+      done();
+    })
+    .catch(done);
+}
+
 describe('CacheLib', function() {
   describe('Entry', function() {
     it('Entry constructors should not require `new` keyword', function() {
@@ -339,7 +362,7 @@ describe('CacheLib', function() {
       });
     });
 
-    it('should emit "error" when store resolves non-CacheEntry value and delete' +
+    it('should emit "error" when store resolves non-CacheEntry-like value and delete' +
     ' key (NON-LRU)', function(done) {
       var badStore = {
         set: function() {return Promise.resolve()},
@@ -418,6 +441,102 @@ describe('CacheLib', function() {
       var cache = new Cache({lru: false});
       should(cache._protected).equal(null);
       cache._unProtect('test');
+    });
+
+    it('should work with any store, that meets `Store` interface',
+    function(done) {
+      var store = {
+        cache: {},
+        get: Promise.method(function(key) {
+          return this.cache[key] || null;
+        }),
+        set: Promise.method(function(key, val) {
+          this.cache[key] = val;
+          return val;
+        }),
+        del: Promise.method(function(key) {
+          delete this.cache[key];
+          return true;
+        })
+      };
+
+      var cache = new Cache({
+        store: store
+      });
+      cacheLifeCycle(cache, done);
+    });
+
+    it('should parse `CacheEntry` from strings', function(done) {
+      var jsonStore = {
+        cache: {},
+        get: Promise.method(function(key) {
+          return this.cache[key] || null;
+        }),
+        set: Promise.method(function(key, val) {
+          val = JSON.stringify(val);
+          this.cache[key] = val;
+        }),
+        del: Promise.method(function(key) {
+          delete this.cache[key];
+          return true;
+        })
+      };
+
+      var cache = new Cache({
+        store: jsonStore
+      });
+      jsonStore.set('foo', {bar: 'baz'})
+        .then(function(val) {
+          return jsonStore.get('foo');
+        })
+        .then(function(val) {
+          (typeof val).should.equal('string');
+        })
+        .then(function() {
+          return jsonStore.del('foo');
+        })
+        .then(function() {
+          cacheLifeCycle(cache, done);
+        })
+        .catch(done);
+    });
+
+    it('should parse `CacheEntry` from objects', function(done) {
+      var objStore = {
+        cache: {},
+        get: Promise.method(function(key) {
+          return this.cache.hasOwnProperty(key)
+            ? JSON.parse(this.cache[key])
+            : null;
+        }),
+        set: Promise.method(function(key, val) {
+          val = JSON.stringify(val);
+          this.cache[key] = val;
+        }),
+        del: Promise.method(function(key) {
+          delete this.cache[key];
+          return true;
+        })
+      };
+
+      var cache = new Cache({
+        store: objStore
+      });
+      objStore.set('foo', {bar: 'baz'})
+        .then(function(val) {
+          return objStore.get('foo');
+        })
+        .then(function(val) {
+          (typeof val).should.equal('object');
+          (val instanceof CacheEntry).should.equal(false);
+        })
+        .then(function() {
+          return objStore.del('foo');
+        })
+        .then(function() {
+          cacheLifeCycle(cache, done);
+        })
+        .catch(done);
     });
 
     // end Cache

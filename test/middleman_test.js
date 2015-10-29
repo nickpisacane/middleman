@@ -7,6 +7,7 @@ var http = require('http');
 var MemoryStore = require('../lib/cache/store');
 var Promise = require('bluebird');
 var assert = require('assert');
+var Url = require('url');
 
 var PROXY_PORT = 4242;
 var PORT = 5042;
@@ -714,5 +715,30 @@ describe('Middleman', function() {
         res.body['x-bar'].should.equal('foo');
         done();
       });
+  });
+
+  describe('URI', function() {
+    var target = 'http://test.io';
+    var instance = new Middleman({target: target});
+    var uri = function(reqUrl, stripPrefix, targetPath) {
+      var uri = Url.parse(reqUrl);
+      return instance._createUri(uri, stripPrefix, targetPath);
+    };
+
+    it('should strip prefix and append path', function() {
+      var expected = target+'/basePath/appendPath';
+      uri('/strip/appendPath', '/strip', '/basePath').should.equal(expected);
+    });
+
+    it('should preserve hash and querystrings', function() {
+      var expected = target+'/basePath/appendPath?foo=bar#baz';
+      uri('/strip/appendPath?foo=bar#baz', '/strip', '/basePath')
+        .should.equal(expected);
+    });
+
+    it('should preserve uri with no options', function() {
+      var expected = target+'/somePath?foo=bar#baz';
+      uri('/somePath?foo=bar#baz', '', '').should.equal(expected);
+    });
   });
 });

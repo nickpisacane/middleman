@@ -6,6 +6,7 @@ HTTP proxy with content caching.
 * [Installation](#installation)
 * [Usage](#usage)
 * [Caching](#caching)
+* [Store Implementations](#store-implementations)
 * [Implemeting a Store](#implementing-a-store)
 * [Examples](#examples)
 * [API](#api)
@@ -39,6 +40,9 @@ the LRU work properly. Basically, when a key is evicted, a call is
 made to the store to deleted that entry. This allows the LRU to work even with
 out-of-memory stores. See [Implementing a Store](#implementing-a-store) for more
 details.
+
+### Store Implementations
+* [middleman-redis-store](https://github.com/Nindaff/middleman-redis-store) A Redis based implementation.
 
 ### Implementing a Store
 The "store" is really just an interface, and a simple one at that.
@@ -75,6 +79,22 @@ app.use((req, res) => {
   // do some stuff ...
   proxy.http(req, res);  
 });
+
+app.get('/nameSpace', (req, res) => {
+  proxy.http(req, res, {
+    stripPrefix: '/nameSpace',
+    basePath: '/someBasePath'
+  });
+
+  // GET /nameSpace/path?foo=bar#baz
+  // => (Proxy) GET http://some.api.com/someBasePath/path?foo=bar#baz
+});
+
+// OR
+app.get('/nameSpace', proxy.handler({
+  stripPrefix: '/nameSpace',
+  basePath: '/someBasePath'
+}));
 ```
 
 #### Request Headers
@@ -133,14 +153,27 @@ const proxy = new Middleman({
 * httpError (Function) A function that handles http requests when there was an error
   with the proxy or the store. *Default* 500 Response.
 
-#### Middleman#http(req, res)
+#### Middleman#http(req, res, options)
+* req (http.IncomingMessage) request
+* res (http.ServerResponse) response
+* options (Object)
+* options.stripPrefix (String) Strip prefix from url. *Default* `''`
+* options.basePath (String) Append incoming url to this path
+(which is appended to the target), AFTER striping the prefix given. *Default* `''`
 Handles a "request" event.
-
-#### Middleman#handler()
-Returns Middleman#http() bound with the instances context. Convenience for:
 ```js
-return instance.http.bind(instance);
+const proxy = new Middleman({target: 'http://some.api.com'});
+// ...
+proxy.http(req, res, {
+  stripPrefix: '/namespace',
+  basePath: '/someBasePath'
+});
+// GET /namespace/path?foo=bar#baz => http://some.api.com/someBasePath/path?foo=bar#baz
 ```
+
+#### Middleman#handler(options)
+Returns Middleman#http() bound with the instances context. See Middleman#http.
+
 
 #### Middleman#listen(port, [callback])
 Populates the instances `server` property with an instance of `http.Server`, and

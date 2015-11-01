@@ -110,6 +110,17 @@ const proxy = new Middleman({
   .listen(3000);
 ```
 
+### Ignoring Response Headers
+```js
+const Middleman = require('middleman-proxy');
+const proxy = new Middleman({
+  target: 'http://some.api.com',
+  ignoreHeaders: [
+    'X-Some-Header'
+  ]
+});
+```
+
 ### Request Events
 ```js
 const Middleman = require('middleman-proxy');
@@ -134,6 +145,7 @@ const proxy = new Middleman({
 #### Middleman([options])
 * target (String) URI of proxied host
 * setHeaders (Object) Headers to be sent with the request, when proxied. *Default* `{}`
+* ignoreHeaders (Array) Headers to be omitted from the proxy. *Default* `[]`
 * cacheMethods (String|Array<String>) HTTP Methods that should be cached for,
   does not cache for any omited. *Default* `'any'`
 * maxAge (Number) The max age for cache entries, *Default* `Infinity`

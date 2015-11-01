@@ -1,6 +1,6 @@
 {
   "name": "middleman-proxy",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Nick Pisacane <pisacanen@gmail.com>",
   "description": "HTTP Proxy with content caching.",
   "keywords": [
@@ -25,6 +25,7 @@
   "dependencies": {
     "bluebird": "^2.10.2",
     "bytes": "^2.1.0",
+    "lodash.omit": "^3.1.0",
     "lru-cache": "^2.7.0",
     "object-assign": "^4.0.1",
     "object-sizeof": "^1.0.6",

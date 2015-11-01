@@ -31,6 +31,12 @@ server.get('/redirect', function(req, res) {
 server.get('/headers', function(req, res) {
   res.json(req.headers);
 });
+
+server.get('/ignoreHeaders', function(req, res) {
+  res.setHeader('X-Foo', 'bar');
+  res.setHeader('X-Baz', 'bang');
+  res.json({});
+});
 server.listen(PROXY_PORT);
 
 /**
@@ -714,6 +720,32 @@ describe('Middleman', function() {
         res.body.should.have.property('x-bar');
         res.body['x-bar'].should.equal('foo');
         done();
+      });
+  });
+
+  it('should ignore headers', function(done) {
+    var instance = SUITE.createInstance({
+      ignoreHeaders: [
+        'X-Foo'
+      ]
+    })
+      .on('cache request', xCached);
+    var agent = SUITE.agent;
+
+    agent.get('/ignoreHeaders')
+      .expect('X-Baz', 'bang')
+      .end(function(err, res) {
+        if (err) return done(err);
+        should(res.headers['x-foo']).equal(undefined);
+        should(res.headers['X-Foo']).equal(undefined);
+        agent.get('/ignoreHeaders')
+          .expect('X-Cached', 'true')
+          .end(function(err, res) {
+            if (err) return done(err);
+            should(res.headers['x-foo']).equal(undefined);
+            should(res.headers['X-Foo']).equal(undefined);
+            done();
+          });
       });
   });
 

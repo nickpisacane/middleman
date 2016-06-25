@@ -1,6 +1,6 @@
 {
   "name": "middleman-proxy",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Nick Pisacane <pisacanen@gmail.com>",
   "description": "HTTP Proxy with content caching.",
   "keywords": [
@@ -12,14 +12,14 @@
     "http",
     "api"
   ],
-  "homepage": "https://github.com/Nindaff/middleman",
+  "homepage": "https://github.com/nickpisacane/middleman",
   "engines": {
     "node": ">=0.10.0"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Nindaff/middleman"
+    "url": "https://github.com/nickpisacane/middleman"
   },
   "main": "index.js",
   "dependencies": {
@@ -38,11 +38,11 @@
     "istanbul": "^0.3.22",
     "mocha": "^2.3.3",
     "should": "^7.1.0",
+    "standard": "^7.1.2",
     "supertest": "^1.1.0"
   },
   "scripts": {
-    "test": "eslint lib && ./node_modules/.bin/_mocha -R spec test/*_test.js",
-    "test-ci": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- -R landing ./test/*_test.js",
-    "docs": "doxx --source lib --target docs --theme cayman"
+    "test": "./node_modules/.bin/standard lib && ./node_modules/.bin/_mocha -R spec test/*_test.js",
+    "test-ci": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- -R landing ./test/*_test.js"
   }
 }

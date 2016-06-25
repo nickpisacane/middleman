@@ -2,6 +2,9 @@
   [![Travis][travis-image]][travis-url]
   [![Coveralls][coveralls-image]][coveralls-url]
 
+
+  [![js-standard-style](https://cdn.rawgit.com/feross/standard/master/badge.svg)](https://github.com/feross/standard)
+
 HTTP proxy with content caching.
 * [Installation](#installation)
 * [Usage](#usage)
@@ -17,7 +20,7 @@ $ npm install --save middleman-proxy
 ```
 ## Usage
 ```js
-const Middleman = require('middleman-proxy');
+const Middleman = require('middleman-proxy')
 
 const proxy = new Middleman({
   target: 'http://some.api.com',
@@ -26,8 +29,8 @@ const proxy = new Middleman({
 })
   .createKey((req, url) => `${req.method}:${req.session.id}:${url.path}`)
   .listen(3000, () => {
-    console.log('Proxing "http://some.api.com" on port 3000');
-  });
+    console.log('Proxing "http://some.api.com" on port 3000')
+  })
 ```
 
 ### Caching
@@ -42,7 +45,7 @@ out-of-memory stores. See [Implementing a Store](#implementing-a-store) for more
 details.
 
 ### Store Implementations
-* [middleman-redis-store](https://github.com/Nindaff/middleman-redis-store) A Redis based implementation.
+* [middleman-redis-store](https://github.com/nickpisacane/middleman-redis-store) A Redis based implementation.
 
 ### Implementing a Store
 The "store" is really just an interface, and a simple one at that.
@@ -65,41 +68,41 @@ proxy was not an option. While making a hand-rolled solution, I thought it would
 
 #### Middleware
 ```js
-const Middleman = require('middleman-proxy');
-const app = require('express')();
+const Middleman = require('middleman-proxy')
+const app = require('express')()
 
 const proxy = new Middleman({
   target: 'http://some.api.com'
-});
+})
 
-app.use(proxy.handler());
+app.use(proxy.handler())
 
 // OR
 app.use((req, res) => {
   // do some stuff ...
-  proxy.http(req, res);  
+  proxy.http(req, res)  
 });
 
 app.get('/nameSpace', (req, res) => {
   proxy.http(req, res, {
     stripPrefix: '/nameSpace',
     basePath: '/someBasePath'
-  });
+  })
 
   // GET /nameSpace/path?foo=bar#baz
   // => (Proxy) GET http://some.api.com/someBasePath/path?foo=bar#baz
-});
+})
 
 // OR
 app.get('/nameSpace', proxy.handler({
   stripPrefix: '/nameSpace',
   basePath: '/someBasePath'
-}));
+}))
 ```
 
 #### Request Headers
 ```js
-const Middleman = require('middleman-proxy');
+const Middleman = require('middleman-proxy')
 const proxy = new Middleman({
   target: 'http://some.api.com',
   setHeaders: {
@@ -107,38 +110,38 @@ const proxy = new Middleman({
     'Authorization': `Bearer ${getAccessToken()}`
   }
 })
-  .listen(3000);
+  .listen(3000)
 ```
 
 ### Ignoring Response Headers
 ```js
-const Middleman = require('middleman-proxy');
+const Middleman = require('middleman-proxy')
 const proxy = new Middleman({
   target: 'http://some.api.com',
   ignoreHeaders: [
     'X-Some-Header'
   ]
-});
+})
 ```
 
 ### Request Events
 ```js
-const Middleman = require('middleman-proxy');
+const Middleman = require('middleman-proxy')
 const proxy = new Middleman({
   target: 'http://some.api.com'
 })
   .on('request', (req, res) => {
     // For every request
-    res.setHeader('X-Always', 'true');
+    res.setHeader('X-Always', 'true')
   })
   .on('proxy request', (req, res) => {
     // For requests being proxied
-    res.setHeader('X-Proxied', 'true');
+    res.setHeader('X-Proxied', 'true')
   })
   .on('cache request', (req, res) => {
     // For requests with cached responses
-    res.setHeader('X-Cached', 'true');
-  });
+    res.setHeader('X-Cached', 'true')
+  })
 ```
 
 ## API
@@ -174,12 +177,12 @@ const proxy = new Middleman({
 (which is appended to the target), AFTER striping the prefix given. *Default* `''`
 Handles a "request" event.
 ```js
-const proxy = new Middleman({target: 'http://some.api.com'});
+const proxy = new Middleman({target: 'http://some.api.com'})
 // ...
 proxy.http(req, res, {
   stripPrefix: '/namespace',
   basePath: '/someBasePath'
-});
+})
 // GET /namespace/path?foo=bar#baz => http://some.api.com/someBasePath/path?foo=bar#baz
 ```
 
@@ -192,8 +195,8 @@ Populates the instances `server` property with an instance of `http.Server`, and
 binds to the `port`.
 ```js
 instance.listen(3000, () => {
-  console.log('Middleman instance is now serving on port 3000');
-});
+  console.log('Middleman instance is now serving on port 3000')
+})
 ```
 
 #### Middleman#createKey(fn)
@@ -201,9 +204,9 @@ instance.listen(3000, () => {
 ```js
 instance
   .createKey((req, url) => {
-    return `${req.method}:${req.session.id}:${url.path}`;
+    return `${req.method}:${req.session.id}:${url.path}`
   })
-  .listen(3000);
+  .listen(3000)
 ```
 
 #### Middleman#bypass(fn)
@@ -212,12 +215,12 @@ instance
 instance
   .bypass((res) => {
     if (res.statusCode < 300) {
-      return false; // this response is cached
+      return false // this response is cached
     } else {
-      return true; // not caching this one
+      return true // not caching this one
     }
   })
-  .listen(3000);
+  .listen(3000)
 ```
 
 #### Middleman#httpError(fn)
@@ -225,17 +228,17 @@ instance
 ```js
 instance
   .httpError((req, res) => {
-    res.statusCode = 500;
-    res.end('Whoops! Something blew up...');
+    res.statusCode = 500
+    res.end('Whoops! Something blew up...')
   })
-  .listen(3000);
+  .listen(3000)
 ```
 
 ### Licence
 
 MIT
 
-[travis-image]: https://travis-ci.org/Nindaff/middleman.svg?branch=master
-[travis-url]: https://travis-ci.org/Nindaff/middleman
-[coveralls-image]: https://coveralls.io/repos/Nindaff/middleman/badge.svg?branch=master&service=github
-[coveralls-url]: https://coveralls.io/github/Nindaff/middleman?branch=master
+[travis-image]: https://travis-ci.org/nickpisacane/middleman.svg?branch=master
+[travis-url]: https://travis-ci.org/nickpisacane/middleman
+[coveralls-image]: https://coveralls.io/repos/nickpisacane/middleman/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/nickpisacane/middleman?branch=master
